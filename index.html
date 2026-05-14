@@ -1296,6 +1296,7 @@ async function saveAdminTopScorer(player){
 }
 
 function renderTopScorer(){
+  if(!currentUser){ document.getElementById('topscorer-content').innerHTML='<p style="color:var(--muted);padding:1rem 0;font-size:14px">Please log in to see top scorer predictions.</p>'; return; }
   const locked = isPredictionLocked();
   const myPick = sharedState.users[currentUser]?.topScorer || '';
   const adminPick = sharedState.adminTopScorer || '';
@@ -1319,26 +1320,25 @@ function renderTopScorer(){
     <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Your pick</div>`;
 
   if(!locked){
-    html += `<select id="topscorer-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;background:#fff;margin-bottom:.75rem" onchange="">
+    html += `<select id="topscorer-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;background:#fff;margin-bottom:.75rem">
       <option value="">— Select a player —</option>
       ${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===myPick?'selected':''}>${p}</option>`).join('')}
     </select>
     <button class="btn-save" onclick="saveTopScorer(document.getElementById('topscorer-select').value)">Save pick</button>`;
   } else {
-    // Locked — show pick and result
     const correct = adminPick && myPick === adminPick;
     const pts = correct ? TOP_SCORER_PTS : 0;
-    html += `<div style="font-size:16px;font-weight:600;margin-bottom:.4rem">${myPick||'No pick submitted'}</div>`;
+    html += `<div style="font-size:16px;font-weight:600;margin-bottom:.4rem">${myPick||'<span style="color:var(--muted);font-weight:400">No pick submitted</span>'}</div>`;
     if(adminPick){
       html += `<div style="font-size:13px;color:var(--muted)">Actual top scorer: <strong style="color:var(--text)">${adminPick}</strong></div>`;
       if(myPick) html += `<div style="margin-top:.5rem">${correct?`<span class="result-pill rp-exact">+${pts} pts — correct!</span>`:`<span class="result-pill rp-wrong">0 pts</span>`}</div>`;
     } else {
-      html += `<div style="font-size:12px;color:var(--muted);margin-top:.4rem">Result will appear here once the tournament ends.</div>`;
+      html += `<div style="font-size:12px;color:var(--muted);margin-top:.4rem">Result will appear here once Terje enters the actual top scorer below.</div>`;
     }
   }
   html += `</div>`;
 
-  // Admin: enter actual top scorer
+  // Admin: enter actual top scorer — always visible to Terje
   if(isAdmin){
     html += `<div style="background:var(--warn-bg);border:1px solid #e8d070;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem">
       <div style="font-size:12px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Admin — Enter actual top scorer</div>
@@ -1347,11 +1347,12 @@ function renderTopScorer(){
         ${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===adminPick?'selected':''}>${p}</option>`).join('')}
       </select>
       <button class="btn-save" onclick="saveAdminTopScorer(document.getElementById('admin-topscorer-select').value)">Save result</button>
+      ${adminPick ? `<div style="font-size:12px;color:var(--success);margin-top:.5rem">✓ Currently set to: <strong>${adminPick}</strong></div>` : ''}
     </div>`;
   }
 
-  // All picks (after cutoff)
-  if(locked && users.length > 0){
+  // All picks — show always so admin can test, locked check for others
+  if(users.length > 0 && (locked || isAdmin)){
     html += `<div style="background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
       <div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600">
         <span>Player</span><span>Their pick</span><span>Pts</span>
