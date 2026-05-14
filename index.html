@@ -205,41 +205,41 @@ code.block{display:block;padding:.5rem .75rem;margin:.4rem 0;line-height:1.6}
 
     <!-- Step 1: pick name -->
     <div id="login-step-name">
-      <h2>Hvem er du?</h2>
-      <p>Skriv inn navnet ditt for å bli med, eller velg deg fra listen nedenfor.</p>
+      <h2>Who are you?</h2>
+      <p>Enter your name to join, or pick yours from the list below.</p>
       <input type="text" id="username-input" placeholder="Your name..." maxlength="24"/>
-      <button class="btn btn-primary" onclick="loginStepName()">Fortsett</button>
-      <p class="err-msg" id="name-err">Vennligst skriv inn et navn.</p>
+      <button class="btn btn-primary" onclick="loginStepName()">Continue</button>
+      <p class="err-msg" id="name-err">Please enter a name.</p>
       <div id="existing-section" style="display:none">
-        <div class="divider">eller fortsett som</div>
+        <div class="divider">or continue as</div>
         <div class="user-chips" id="user-chips"></div>
       </div>
     </div>
 
     <!-- Step 2a: set PIN (new user) -->
     <div id="login-step-setpin" style="display:none">
-      <h2>Velg din PIN</h2>
-      <p id="setpin-intro">Velg en 4-sifret PIN for <strong id="setpin-name"></strong>. Du trenger den hver gang du logger inn.</p>
-      <input type="password" id="pin-set" placeholder="4-sifret PIN" maxlength="4" inputmode="numeric" pattern="[0-9]*"/>
-      <input type="password" id="pin-confirm" placeholder="Bekreft PIN" maxlength="4" inputmode="numeric" pattern="[0-9]*"/>
-      <button class="btn btn-primary" onclick="loginSetPin()">Opprett konto</button>
+      <h2>Set your PIN</h2>
+      <p id="setpin-intro">Choose a 4-digit PIN for <strong id="setpin-name"></strong>. You'll need it every time you log in.</p>
+      <input type="password" id="pin-set" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" pattern="[0-9]*"/>
+      <input type="password" id="pin-confirm" placeholder="Confirm PIN" maxlength="4" inputmode="numeric" pattern="[0-9]*"/>
+      <button class="btn btn-primary" onclick="loginSetPin()">Create account</button>
       <p class="err-msg" id="setpin-err"></p>
-      <button class="btn" style="background:none;border:none;color:var(--muted);font-size:13px;margin-top:.25rem" onclick="backToName()">← Tilbake</button>
+      <button class="btn" style="background:none;border:none;color:var(--muted);font-size:13px;margin-top:.25rem" onclick="backToName()">← Back</button>
     </div>
 
     <!-- Step 2b: enter PIN (existing user) -->
     <div id="login-step-enterpin" style="display:none">
-      <h2>Skriv inn PIN</h2>
-      <p>Velkommen tilbake, <strong id="enterpin-name"></strong>! Skriv inn din 4-sifrete PIN for å fortsette.</p>
-      <input type="password" id="pin-enter" placeholder="4-sifret PIN" maxlength="4" inputmode="numeric" pattern="[0-9]*"/>
-      <button class="btn btn-primary" onclick="loginEnterPin()">Logg inn</button>
+      <h2>Enter your PIN</h2>
+      <p>Welcome back, <strong id="enterpin-name"></strong>! Enter your 4-digit PIN to continue.</p>
+      <input type="password" id="pin-enter" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" pattern="[0-9]*"/>
+      <button class="btn btn-primary" onclick="loginEnterPin()">Log in</button>
       <p class="err-msg" id="enterpin-err"></p>
-      <button class="btn" style="background:none;border:none;color:var(--muted);font-size:13px;margin-top:.25rem" onclick="backToName()">← Tilbake</button>
+      <button class="btn" style="background:none;border:none;color:var(--muted);font-size:13px;margin-top:.25rem" onclick="backToName()">← Back</button>
     </div>
 
     <div style="display:flex;align-items:center;gap:.5rem;margin-top:.75rem" id="remember-row">
       <input type="checkbox" id="remember-me" checked style="width:auto;margin:0;accent-color:var(--green)"/>
-      <label for="remember-me" style="font-size:13px;color:var(--muted);cursor:pointer">Husk meg på denne enheten</label>
+      <label for="remember-me" style="font-size:13px;color:var(--muted);cursor:pointer">Remember me on this device</label>
     </div>
   </div>
 </div>
@@ -276,6 +276,7 @@ code.block{display:block;padding:.5rem .75rem;margin:.4rem 0;line-height:1.6}
   <button class="nav-tab active" onclick="switchTab('predictions',this)">My Predictions</button>
   <button class="nav-tab" onclick="switchTab('standings',this)">Standings</button>
   <button class="nav-tab" onclick="switchTab('leaderboard',this)">Leaderboard</button>
+  <button class="nav-tab" onclick="switchTab('topscorer',this)">🥅 Top Scorer</button>
   <button class="nav-tab" id="summary-tab" style="display:none" onclick="switchTab('summary',this)">📋 Summary</button>
   <button class="nav-tab" id="results-tab" style="display:none" onclick="switchTab('results',this)">Enter Results</button>
 </nav>
@@ -285,12 +286,12 @@ code.block{display:block;padding:.5rem .75rem;margin:.4rem 0;line-height:1.6}
     <div class="pts-key">
       <span class="pts-badge"><strong>5 pts</strong> exact score</span>
       <span class="pts-badge"><strong>2 pts</strong> correct result / draw</span>
-      <span class="pts-badge"><strong>1 pt</strong> riktige lag (sluttspill)</span>
+      <span class="pts-badge"><strong>1 pt</strong> correct teams (knockout)</span>
     </div>
     <div id="cutoff-banner" style="display:none"></div>
     <div class="save-bar" id="predictions-save-bar">
       <button class="btn-save" onclick="saveAll()">Save predictions</button>
-      <span class="save-msg" id="save-msg">Lagret!</span>
+      <span class="save-msg" id="save-msg">Saved!</span>
     </div>
     <div id="predictions-content"></div>
   </div>
@@ -302,19 +303,23 @@ code.block{display:block;padding:.5rem .75rem;margin:.4rem 0;line-height:1.6}
     <div id="leaderboard-content"></div>
   </div>
 
+  <div class="tab-content" id="tab-topscorer">
+    <div id="topscorer-content"></div>
+  </div>
+
   <div class="tab-content" id="tab-summary">
     <div class="info-note">Generate a daily summary to copy and paste into your WhatsApp group.</div>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center">
-      <label style="font-size:13px;color:var(--muted);font-weight:500">Vis resultater fra:</label>
+      <label style="font-size:13px;color:var(--muted);font-weight:500">Show results from:</label>
       <input type="date" id="summary-date" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Barlow',sans-serif"/>
-      <button class="btn-save" onclick="renderSummary()">Generer</button>
+      <button class="btn-save" onclick="renderSummary()">Generate</button>
     </div>
     <div id="summary-output" style="display:none">
       <div id="summary-text" style="background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:1rem;font-size:13px;line-height:1.7;white-space:pre-wrap;font-family:monospace;color:var(--text)"></div>
       <button class="btn-save" style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem" onclick="copySummary()">
-        📋 Kopier til utklippstavle
+        📋 Copy to clipboard
       </button>
-      <span class="save-msg" id="copy-msg" style="display:inline-block;margin-top:.75rem">Kopiert!</span>
+      <span class="save-msg" id="copy-msg" style="display:inline-block;margin-top:.75rem">Copied!</span>
     </div>
   </div>
   <div class="tab-content" id="tab-results">
@@ -325,7 +330,7 @@ code.block{display:block;padding:.5rem .75rem;margin:.4rem 0;line-height:1.6}
     <div class="info-note" id="results-manual-note">Enter actual match scores here. Standings and the knockout bracket update automatically for everyone.</div>
     <div class="save-bar">
       <button class="btn-save" onclick="saveResults()">Save results</button>
-      <span class="save-msg" id="save-results-msg">Lagret!</span>
+      <span class="save-msg" id="save-results-msg">Saved!</span>
       <label class="feed-toggle" title="Toggle live score feed">
         <span>Live feed</span>
         <label class="toggle"><input type="checkbox" id="live-feed-toggle" checked onchange="toggleLiveFeed()"/><span class="toggle-slider"></span></label>
@@ -542,8 +547,9 @@ async function fetchState(){
     const data = snap.val() || {};
     sharedState.users = data.users || {};
     sharedState.results = data.results || {};
+    sharedState.adminTopScorer = data.adminTopScorer || '';
     setSyncUI('ok','Live'); return true;
-  }catch(e){ setSyncUI('err','Synk mislyktes'); return false; }
+  }catch(e){ setSyncUI('err','Sync failed'); return false; }
 }
 
 function subscribeToLiveUpdates(){
@@ -551,12 +557,14 @@ function subscribeToLiveUpdates(){
     const data = snap.val() || {};
     sharedState.users = data.users || {};
     sharedState.results = data.results || {};
+    sharedState.adminTopScorer = data.adminTopScorer || '';
     setSyncUI('ok','Live');
     const active = document.querySelector('.tab-content.active');
     if(active?.id==='tab-leaderboard') renderLeaderboard();
     if(active?.id==='tab-standings') renderStandings();
     if(active?.id==='tab-predictions' && currentUser) renderPredictions();
     if(active?.id==='tab-results') renderResults();
+    if(active?.id==='tab-topscorer') renderTopScorer();
   });
 }
 
@@ -647,7 +655,7 @@ function loginStepName(){
   } else if(isExisting && !sharedState.users[v].pin){
     // Existing user without PIN (legacy) → ask them to set one
     document.getElementById('setpin-name').textContent = v;
-    document.getElementById('setpin-intro').innerHTML = `<strong>${v}</strong> har ikke satt en PIN ennå. Velg en nå for å sikre kontoen din.`;
+    document.getElementById('setpin-intro').innerHTML = `<strong>${v}</strong> hasn't set a PIN yet. Choose one now to secure your account.`;
     document.getElementById('pin-set').value=''; document.getElementById('pin-confirm').value='';
     document.getElementById('setpin-err').style.display='none';
     document.getElementById('login-step-name').style.display='none';
@@ -655,7 +663,7 @@ function loginStepName(){
   } else {
     // New user → set PIN
     document.getElementById('setpin-name').textContent = v;
-    document.getElementById('setpin-intro').innerHTML = `Velg en 4-sifret PIN for <strong>${v}</strong>. Du trenger den hver gang du logger inn.`;
+    document.getElementById('setpin-intro').innerHTML = `Choose a 4-digit PIN for <strong>${v}</strong>. You'll need it every time you log in.`;
     document.getElementById('pin-set').value=''; document.getElementById('pin-confirm').value='';
     document.getElementById('setpin-err').style.display='none';
     document.getElementById('login-step-name').style.display='none';
@@ -672,8 +680,8 @@ async function loginSetPin(){
   const pin = document.getElementById('pin-set').value.trim();
   const confirm = document.getElementById('pin-confirm').value.trim();
   const errEl = document.getElementById('setpin-err');
-  if(!/^\d{4}$/.test(pin)){ errEl.textContent='PIN må være nøyaktig 4 siffer.'; errEl.style.display='block'; return; }
-  if(pin !== confirm){ errEl.textContent="PIN-kodene er ikke like."; errEl.style.display='block'; return; }
+  if(!/^\d{4}$/.test(pin)){ errEl.textContent='PIN must be exactly 4 digits.'; errEl.style.display='block'; return; }
+  if(pin !== confirm){ errEl.textContent="PINs don't match."; errEl.style.display='block'; return; }
   errEl.style.display='none';
   const hashed = await hashPin(pin);
   // Create or update user with hashed PIN
@@ -686,10 +694,10 @@ async function loginSetPin(){
 async function loginEnterPin(){
   const pin = document.getElementById('pin-enter').value.trim();
   const errEl = document.getElementById('enterpin-err');
-  if(!pin){ errEl.textContent='Vennligst skriv inn PIN-koden din.'; errEl.style.display='block'; return; }
+  if(!pin){ errEl.textContent='Please enter your PIN.'; errEl.style.display='block'; return; }
   const hashed = await hashPin(pin);
   const stored = sharedState.users[pendingUser]?.pin;
-  if(hashed !== stored){ errEl.textContent='Feil PIN. Prøv igjen.'; errEl.style.display='block'; return; }
+  if(hashed !== stored){ errEl.textContent='Wrong PIN. Try again.'; errEl.style.display='block'; return; }
   errEl.style.display='none';
   finishLogin(pendingUser);
 }
@@ -725,17 +733,17 @@ function updateCutoffBanner(){
   if(isPredictionLocked()){
     banner.style.display = 'block';
     banner.innerHTML = `<div class="info-note" style="background:#fdf0f0;border-color:#ffcccc;color:#8a2020;margin-bottom:.75rem">
-      🔒 Gjetting er låst — turneringen har startet. Dine innsendte gjett er endelige.
+      🔒 Predictions are locked — the tournament has started. Your submitted predictions are final.
     </div>`;
     saveBar.style.display = 'none';
   } else {
     const diff = PREDICTION_CUTOFF - new Date();
     const days = Math.floor(diff / 86400000);
     const hours = Math.floor((diff % 86400000) / 3600000);
-    const msg = days > 0 ? `${days} dag${days>1?'er':''} og ${hours} time${hours!==1?'r':''} igjen` : `${hours} time${hours!==1?'r':''} igjen`;
+    const msg = days > 0 ? `${days} day${days>1?'s':''} and ${hours} hour${hours!==1?'s':''} left` : `${hours} hour${hours!==1?'s':''} left`;
     banner.style.display = 'block';
     banner.innerHTML = `<div class="info-note" style="margin-bottom:.75rem">
-      ⏱ Gjett låses <strong>10. juni</strong> — ${msg} til å sende inn dine gjett.
+      ⏱ Predictions lock on <strong>June 10</strong> — ${msg} to submit yours.
     </div>`;
     saveBar.style.display = 'flex';
   }
@@ -755,7 +763,7 @@ function enterApp(){
 // ── BOOT ──────────────────────────────────────────────────────────────────────
 loadLocal();
 async function boot(){
-  if(!BAKED.apiKey){ document.getElementById('admin-overlay').style.display='flex'; setSyncUI('err','Ikke tilkoblet'); return; }
+  if(!BAKED.apiKey){ document.getElementById('admin-overlay').style.display='flex'; setSyncUI('err','Not connected'); return; }
   document.getElementById('admin-overlay').style.display='none';
   initFirebase(BAKED);
   const ok = await fetchState(); if(!ok) return;
@@ -780,6 +788,7 @@ function switchTab(tab, btn){
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='standings') renderStandings();
   if(tab==='leaderboard') renderLeaderboard();
+  if(tab==='topscorer') renderTopScorer();
   if(tab==='summary') initSummaryTab();
   if(tab==='results') renderResults();
 }
@@ -971,9 +980,9 @@ function calcPts(u, id, slots){
 }
 
 function pill(pts){
-  if(pts===5) return '<span class="result-pill rp-exact">+5 eksakt</span>';
-  if(pts===2) return '<span class="result-pill rp-correct">+2 riktig</span>';
-  if(pts===1) return '<span class="result-pill rp-teams">+1 riktige lag</span>';
+  if(pts===5) return '<span class="result-pill rp-exact">+5 exact</span>';
+  if(pts===2) return '<span class="result-pill rp-correct">+2 correct</span>';
+  if(pts===1) return '<span class="result-pill rp-teams">+1 correct teams</span>';
   if(pts===0) return '<span class="result-pill rp-wrong">0 pts</span>';
   return '';
 }
@@ -992,7 +1001,7 @@ function renderPredictions(){
     if(missing > 0 && !banner.innerHTML.includes('missing-badge')){
       banner.style.display='block';
       banner.innerHTML += `<div style="margin-top:.4rem;font-size:13px;color:var(--muted)">
-        Du har <span class="missing-badge">${missing} manglende</span> gjett — fyll dem inn før fristen!
+        You have <span class="missing-badge">${missing} missing</span> predictions — fill them in before the deadline!
       </div>`;
     }
   }
@@ -1003,17 +1012,17 @@ function renderPredictions(){
     GROUP_MATCHES.filter(m=>m.group===g).forEach(m=>{
       const p = preds[m.id]||{h:'',a:''};
       const popular = locked ? getMostPopular(m.id) : null;
-      const popularHtml = popular ? `<div class="popular-pill">👥 Mest valgt: ${popular.score.replace('-','–')} (${popular.count}/${popular.total})</div>` : '';
+      const popularHtml = popular ? `<div class="popular-pill">👥 Most picked: ${popular.score.replace('-','–')} (${popular.count}/${popular.total})</div>` : '';
       html += predCard(m, m.home, m.away, p.h, p.a, pill(calcPts(currentUser,m.id,slots)), false, locked, popularHtml);
     });
   });
-  [['r32','Åttendedelsfinale'],['r16','Runde av 16'],['qf','Kvartfinale'],['sf','Semifinale'],['third','Bronsefinale'],['final','Finale']].forEach(([ph,lb])=>{
+  [['r32','Round of 32'],['r16','Round of 16'],['qf','Quarter-finals'],['sf','Semi-finals'],['third','Third place play-off'],['final','Final']].forEach(([ph,lb])=>{
     html += `<div class="section-label">${lb}</div>`;
     KNOCKOUT_MATCHES.filter(m=>m.phase===ph).forEach(m=>{
       const home=slots[`home_${m.id}`]||m.home, away=slots[`away_${m.id}`]||m.away;
       const p = preds[m.id]||{h:'',a:''};
       const popular = locked ? getMostPopular(m.id) : null;
-      const popularHtml = popular ? `<div class="popular-pill">👥 Mest valgt: ${popular.score.replace('-','–')} (${popular.count}/${popular.total})</div>` : '';
+      const popularHtml = popular ? `<div class="popular-pill">👥 Most picked: ${popular.score.replace('-','–')} (${popular.count}/${popular.total})</div>` : '';
       html += predCard(m, home, away, p.h, p.a, pill(calcPts(currentUser,m.id,slots)), true, locked, popularHtml);
     });
   });
@@ -1057,12 +1066,12 @@ async function saveAll(){
   const updates = {};
   Object.entries(predBuffer).forEach(([id,v])=>{ updates[`/users/${currentUser}/preds/${id}`]=v; });
   if(Object.keys(updates).length===0){ flash('save-msg'); return; }
-  setSyncUI('spin','Lagrer...');
+  setSyncUI('spin','Saving...');
   try{
     await db.ref().update(updates);
     Object.entries(predBuffer).forEach(([id,v])=>{ if(!sharedState.users[currentUser].preds) sharedState.users[currentUser].preds={}; sharedState.users[currentUser].preds[id]=v; });
-    predBuffer = {}; setSyncUI('ok','Lagret'); flash('save-msg'); renderPredictions();
-  }catch(e){ setSyncUI('err','Lagring mislyktes'); }
+    predBuffer = {}; setSyncUI('ok','Saved'); flash('save-msg'); renderPredictions();
+  }catch(e){ setSyncUI('err','Save failed'); }
 }
 
 // ── RENDER STANDINGS ──────────────────────────────────────────────────────────
@@ -1072,12 +1081,12 @@ function renderStandings(){
   Object.keys(GROUP_TEAMS).forEach(g=>{
     const rows = calcGroupStandings(g);
     html += `<div class="stand-card"><div class="stand-head">Group ${g}</div>
-      <div class="stand-hdr"><span>#</span><span>Team</span><span>P</span><span>GD</span><span>GF</span><span>Pts</span></div>`;
+      <div class="stand-hdr"><span>#</span><span>Team</span><span>K</span><span>MF</span><span>MG</span><span>Pts</span></div>`;
     rows.forEach((t,i)=>{ html+=`<div class="stand-row${i===0?' p1':i===1?' p2':''}"><span class="stand-pos">${i+1}</span><span style="font-size:11px;font-weight:${i<2?600:400}">${t.name}</span><span class="stand-num">${t.played}</span><span class="stand-num">${t.gd>0?'+':''}${t.gd}</span><span class="stand-num">${t.gf}</span><span class="stand-pts">${t.pts}</span></div>`; });
     html += '</div>';
   });
   html += '</div>';
-  [['r32','Åttendedelsfinale'],['r16','Runde av 16'],['qf','Kvartfinale'],['sf','Semifinale'],['third','Bronsefinale'],['final','Finale']].forEach(([ph,lb])=>{
+  [['r32','Round of 32'],['r16','Round of 16'],['qf','Quarter-finals'],['sf','Semi-finals'],['third','Third place play-off'],['final','Final']].forEach(([ph,lb])=>{
     html += `<div class="section-label">${lb}</div>`;
     KNOCKOUT_MATCHES.filter(m=>m.phase===ph).forEach(m=>{
       const home=slots[`home_${m.id}`]||m.home, away=slots[`away_${m.id}`]||m.away, r=getEffectiveResult(m.id);
@@ -1093,17 +1102,18 @@ function renderLeaderboard(){
   if(!users.length){ document.getElementById('leaderboard-content').innerHTML='<p style="color:var(--muted);padding:1rem 0;font-size:14px">No players yet.</p>'; return; }
   const locked = isPredictionLocked();
   const q = getQualifiers(), slots = resolveSlots(q);
-  const scores = users.map(u=>{ let pts=0,exact=0,correct=0,teams=0; ALL_MATCHES.forEach(m=>{const p=calcPts(u,m.id,slots);if(p!==null){pts+=p;if(p===5)exact++;else if(p===2)correct++;else if(p===1)teams++;}}); return{u,pts,exact,correct,teams,missing:getMissingCount(u)}; }).sort((a,b)=>b.pts-a.pts||b.exact-a.exact);
+  const adminPick = sharedState.adminTopScorer || '';
+  const scores = users.map(u=>{ let pts=0,exact=0,correct=0,teams=0; ALL_MATCHES.forEach(m=>{const p=calcPts(u,m.id,slots);if(p!==null){pts+=p;if(p===5)exact++;else if(p===2)correct++;else if(p===1)teams++;}}); const tsPick=sharedState.users[u]?.topScorer||''; if(adminPick&&tsPick===adminPick)pts+=TOP_SCORER_PTS; return{u,pts,exact,correct,teams,missing:getMissingCount(u)}; }).sort((a,b)=>b.pts-a.pts||b.exact-a.exact);
   const medals=['🥇','🥈','🥉'];
-  let html=`<div class="lb-table"><div class="lb-hdr"><span>Plass</span><span>Spiller</span><span>Poeng</span><span>Eksakt</span><span>Utfall</span></div>`;
+  let html=`<div class="lb-table"><div class="lb-hdr"><span>Rank</span><span>Player</span><span>Points</span><span>Exact</span><span>Result</span></div>`;
   scores.forEach((s,i)=>{
     const isYou = s.u === currentUser;
-    const missingTag = !locked && s.missing > 0 ? `<span class="missing-badge">${s.missing} mangler</span>` : '';
+    const missingTag = !locked && s.missing > 0 ? `<span class="missing-badge">${s.missing} missing</span>` : '';
     const clickable = locked ? `onclick="toggleUserPreds('${s.u}')" style="cursor:pointer"` : '';
     const expandHint = locked ? `<span style="font-size:11px;color:var(--muted);margin-left:4px">▼</span>` : '';
     html += `<div class="lb-row${isYou?' you':''}" id="lb-row-${s.u}" ${clickable}>
       <span class="lb-rank${i===0?' gold':''}">${medals[i]||i+1}</span>
-      <span style="font-weight:${isYou?600:400}">${s.u}${isYou?' (deg)':''} ${missingTag}${expandHint}</span>
+      <span style="font-weight:${isYou?600:400}">${s.u}${isYou?' (you)':''} ${missingTag}${expandHint}</span>
       <span class="lb-pts">${s.pts}</span>
       <span class="lb-sub">${s.exact}</span>
       <span class="lb-sub">${s.correct}</span>
@@ -1111,7 +1121,7 @@ function renderLeaderboard(){
     <div id="lb-preds-${s.u}" style="display:none;padding:.5rem 1rem 1rem;background:#fafafa;border-top:1px solid #f0f0f0"></div>`;
   });
   html += '</div>';
-  if(locked) html += `<p style="font-size:12px;color:var(--muted);margin-top:.6rem">👆 Trykk på en spiller for å se deres gjett.</p>`;
+  if(locked) html += `<p style="font-size:12px;color:var(--muted);margin-top:.6rem">👆 Tap any player to see their predictions.</p>`;
   document.getElementById('leaderboard-content').innerHTML = html;
 }
 
@@ -1141,7 +1151,7 @@ function buildUserPredsSummary(u){
     [KNOCKOUT_MATCHES.filter(m=>m.phase==='third'), 'third'],
     [KNOCKOUT_MATCHES.filter(m=>m.phase==='final'), 'final'],
   ];
-  const phaseLabels = {group:'Gruppespill',r32:'Åttendedelsfinale',r16:'Runde av 16',qf:'Kvartfinale',sf:'Semifinale',third:'Bronsefinale',final:'Finale'};
+  const phaseLabels = {group:'Group stage',r32:'Round of 32',r16:'Round of 16',qf:'Quarter-finals',sf:'Semi-finals',third:'Third place play-off',final:'Final'};
   let lastGroup = null;
   GROUP_MATCHES.forEach(m=>{
     if(m.group !== lastGroup){
@@ -1150,7 +1160,7 @@ function buildUserPredsSummary(u){
     }
     html += miniPredRow(m, m.home, m.away, preds[m.id], calcPts(u, m.id, slots));
   });
-  [['r32','Åttendedelsfinale'],['r16','Runde av 16'],['qf','Kvartfinale'],['sf','Semifinale'],['third','Bronsefinale'],['final','Finale']].forEach(([ph,lb])=>{
+  [['r32','Round of 32'],['r16','Round of 16'],['qf','Quarter-finals'],['sf','Semi-finals'],['third','Third place play-off'],['final','Final']].forEach(([ph,lb])=>{
     html += `<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin:.75rem 0 .25rem">${lb}</div>`;
     KNOCKOUT_MATCHES.filter(m=>m.phase===ph).forEach(m=>{
       const home=slots[`home_${m.id}`]||m.home, away=slots[`away_${m.id}`]||m.away;
@@ -1180,7 +1190,7 @@ function renderResults(){
     html += `<div class="section-label">Group ${g}</div>`;
     GROUP_MATCHES.filter(m=>m.group===g).forEach(m=>{ html+=resultCard(m,m.home,m.away,false); });
   });
-  [['r32','Åttendedelsfinale'],['r16','Runde av 16'],['qf','Kvartfinale'],['sf','Semifinale'],['third','Bronsefinale'],['final','Finale']].forEach(([ph,lb])=>{
+  [['r32','Round of 32'],['r16','Round of 16'],['qf','Quarter-finals'],['sf','Semi-finals'],['third','Third place play-off'],['final','Final']].forEach(([ph,lb])=>{
     html += `<div class="section-label">${lb}</div>`;
     KNOCKOUT_MATCHES.filter(m=>m.phase===ph).forEach(m=>{
       const home=slots[`home_${m.id}`]||m.home, away=slots[`away_${m.id}`]||m.away;
@@ -1220,12 +1230,77 @@ async function saveResults(){
   const updates={};
   Object.entries(resultBuffer).forEach(([id,v])=>{ updates[`/results/${id}`]={...v, source:'manual'}; });
   if(Object.keys(updates).length===0){ flash('save-results-msg'); return; }
-  setSyncUI('spin','Lagrer...');
+  setSyncUI('spin','Saving...');
   try{
     await db.ref().update(updates);
     Object.entries(resultBuffer).forEach(([id,v])=>{ sharedState.results[id]={...v,source:'manual'}; });
-    resultBuffer={}; setSyncUI('ok','Lagret'); flash('save-results-msg'); renderResults(); buildTicker();
-  }catch(e){ setSyncUI('err','Lagring mislyktes'); }
+    resultBuffer={}; setSyncUI('ok','Saved'); flash('save-results-msg'); renderResults(); buildTicker();
+  }catch(e){ setSyncUI('err','Save failed'); }
+}
+
+
+// ── TOP SCORER ────────────────────────────────────────────────────────────────
+const TOP_SCORER_PLAYERS = [
+  'Kylian Mbappé (France)','Harry Kane (England)','Erling Haaland (Norway)',
+  'Lionel Messi (Argentina)','Lamine Yamal (Spain)','Lautaro Martínez (Argentina)',
+  'Vinicius Jr. (Brazil)','Raphinha (Brazil)','Mikel Oyarzabal (Spain)',
+  'Julián Álvarez (Argentina)','Cristiano Ronaldo (Portugal)','Rafael Leão (Portugal)',
+  'Cody Gakpo (Netherlands)','Memphis Depay (Netherlands)','Luis Díaz (Colombia)',
+  'James Rodríguez (Colombia)','Bukayo Saka (England)','Phil Foden (England)',
+  'Antoine Griezmann (France)','Ousmane Dembélé (France)','Ferran Torres (Spain)',
+  'Rodrygo (Brazil)','Richarlison (Brazil)','Álvaro Morata (Spain)',
+  'Nicolas Jackson (Senegal)','Sadio Mané (Senegal)','Son Heung-min (South Korea)',
+  'Paulo Dybala (Argentina)','Pedri (Spain)','Takumi Minamino (Japan)',
+];
+const TOP_SCORER_PTS = 10;
+
+async function saveTopScorer(player){
+  if(!player||!currentUser) return;
+  await db.ref(`/users/${currentUser}/topScorer`).set(player);
+  sharedState.users[currentUser].topScorer = player;
+  setSyncUI('ok','Saved');
+  renderTopScorer();
+}
+
+async function saveAdminTopScorer(player){
+  if(!player) return;
+  await db.ref('/adminTopScorer').set(player);
+  sharedState.adminTopScorer = player;
+  setSyncUI('ok','Saved');
+  renderTopScorer();
+  renderLeaderboard();
+}
+
+function renderTopScorer(){
+  if(!currentUser){ document.getElementById('topscorer-content').innerHTML='<p style="color:var(--muted);padding:1rem 0;font-size:14px">Please log in to see top scorer predictions.</p>'; return; }
+  const locked = isPredictionLocked();
+  const myPick = sharedState.users[currentUser]?.topScorer || '';
+  const adminPick = sharedState.adminTopScorer || '';
+  const isAdmin = currentUser.toLowerCase() === ADMIN_USER;
+  const users = Object.keys(sharedState.users);
+  let html = '';
+  html += `<div class="pts-key" style="margin-bottom:1rem"><span class="pts-badge"><strong>${TOP_SCORER_PTS} pts</strong> correct top scorer</span></div>`;
+  if(!locked) html += `<div class="info-note" style="margin-bottom:1rem">⏱ Pick the player you think will score the most goals. Locked on June 10 — same deadline as your match predictions.</div>`;
+  html += `<div style="background:var(--card);border-radius:10px;padding:1rem 1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:1rem"><div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Your pick</div>`;
+  if(!locked){
+    html += `<select id="topscorer-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;background:#fff;margin-bottom:.75rem"><option value="">— Select a player —</option>${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===myPick?'selected':''}>${p}</option>`).join('')}</select><button class="btn-save" onclick="saveTopScorer(document.getElementById('topscorer-select').value)">Save pick</button>`;
+  } else {
+    const correct = adminPick && myPick === adminPick;
+    const pts = correct ? TOP_SCORER_PTS : 0;
+    html += `<div style="font-size:16px;font-weight:600;margin-bottom:.4rem">${myPick||'<span style="color:var(--muted);font-weight:400">No pick submitted</span>'}</div>`;
+    if(adminPick){ html += `<div style="font-size:13px;color:var(--muted)">Actual top scorer: <strong style="color:var(--text)">${adminPick}</strong></div>`; if(myPick) html += `<div style="margin-top:.5rem">${correct?`<span class="result-pill rp-exact">+${pts} pts — correct!</span>`:`<span class="result-pill rp-wrong">0 pts</span>`}</div>`; }
+    else html += `<div style="font-size:12px;color:var(--muted);margin-top:.4rem">Result will appear here once the actual top scorer is entered.</div>`;
+  }
+  html += `</div>`;
+  if(isAdmin){
+    html += `<div style="background:var(--warn-bg);border:1px solid #e8d070;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem"><div style="font-size:12px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Admin — Enter actual top scorer</div><select id="admin-topscorer-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;background:#fff;margin-bottom:.75rem"><option value="">— Select player —</option>${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===adminPick?'selected':''}>${p}</option>`).join('')}</select><button class="btn-save" onclick="saveAdminTopScorer(document.getElementById('admin-topscorer-select').value)">Save result</button>${adminPick?`<div style="font-size:12px;color:var(--success);margin-top:.5rem">✓ Currently set to: <strong>${adminPick}</strong></div>`:''}</div>`;
+  }
+  if(users.length > 0 && (locked || isAdmin)){
+    html += `<div style="background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600"><span>Player</span><span>Their pick</span><span>Pts</span></div>`;
+    users.forEach(u=>{ const pick=sharedState.users[u]?.topScorer||''; const correct=adminPick&&pick===adminPick; const pts=adminPick?(correct?TOP_SCORER_PTS:0):'—'; const isYou=u===currentUser; html+=`<div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;border-top:1px solid #f0f0f0;font-size:13px;${isYou?'background:var(--warn-bg)':''}"><span style="font-weight:${isYou?600:400}">${u}${isYou?' (you)':''}</span><span style="color:${pick?'var(--text)':'var(--muted)'}">${pick||'No pick'}</span><span style="font-weight:600;color:${correct?'var(--success)':'var(--muted)'}">${pts}</span></div>`; });
+    html += `</div>`;
+  }
+  document.getElementById('topscorer-content').innerHTML = html;
 }
 
 function flash(id){ const el=document.getElementById(id); el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2000); }
@@ -1345,7 +1420,7 @@ function buildTicker(){
     const home = slots[`home_${m.id}`] || m.home;
     const away = slots[`away_${m.id}`] || m.away;
     const result = getEffectiveResult(m.id);
-    const dateLabel = isToday ? 'I dag' : m.date.slice(5).replace('-','/');
+    const dateLabel = isToday ? 'Today' : m.date.slice(5).replace('-','/');
     const flagH = FLAG[home]||'';
     const flagA = FLAG[away]||'';
 
@@ -1385,7 +1460,7 @@ function renderCountdown(){
   bar.style.display = 'flex';
   if(isPredictionLocked()){
     bar.className = 'countdown-bar locked';
-    bar.innerHTML = `🔒 Gjett er låst &nbsp;·&nbsp; Turneringen er i gang!`;
+    bar.innerHTML = `🔒 Predictions are locked &nbsp;·&nbsp; Tournament is underway!`;
     return;
   }
   bar.className = 'countdown-bar';
@@ -1395,7 +1470,7 @@ function renderCountdown(){
   const mins = Math.floor((diff % 3600000) / 60000);
   const secs = Math.floor((diff % 60000) / 1000);
   bar.innerHTML = `
-    <span style="font-size:13px;opacity:.85">Gjett låses 10. juni</span>
+    <span style="font-size:13px;opacity:.85">Predictions lock Jun 10</span>
     <div class="countdown-units">
       <div class="countdown-unit"><div class="num">${String(days).padStart(2,'0')}</div><div class="lbl">days</div></div>
       <span class="countdown-sep">:</span>
@@ -1409,10 +1484,12 @@ function renderCountdown(){
 
 // ── MISSING PREDICTIONS ───────────────────────────────────────────────────────
 function getMissingCount(u){
-  return ALL_MATCHES.filter(m=>{
+  const matchMissing = ALL_MATCHES.filter(m=>{
     const p = sharedState.users[u]?.preds?.[m.id];
     return !p || p.h === '' || p.a === '';
   }).length;
+  const tsMissing = sharedState.users[u]?.topScorer ? 0 : 1;
+  return matchMissing + tsMissing;
 }
 
 // ── MOST POPULAR PREDICTION ───────────────────────────────────────────────────
@@ -1475,7 +1552,7 @@ function renderSummary(){
 
   if(matchesOnDate.length === 0){
     document.getElementById('summary-output').style.display='block';
-    document.getElementById('summary-text').textContent = `Ingen resultater funnet for ${dateLabel}.\n\nSørg for at resultater er lagt inn for denne datoen.`;
+    document.getElementById('summary-text').textContent = `No results found for ${dateLabel}.\n\nMake sure results have been entered for this date.`;
     return;
   }
 
@@ -1509,15 +1586,15 @@ function renderSummary(){
   }).filter(Boolean).join('\n');
 
   const summary =
-`⚽ *VM 2026 – ${dateLabel}*
+`⚽ *World Cup 2026 – ${dateLabel}*
 
-*Resultater*
+*Results*
 ${resultsLines}
-${todayLines ? `\n*Poeng tjent i dag*\n${todayLines}\n` : ''}
-*Resultatliste*
+${todayLines ? `\n*Points earned today*\n${todayLines}\n` : ''}
+*Leaderboard*
 ${lbLines}
 
-🔗 Fullt gjetteskjema: predict.wcup2026.com`;
+🔗 Full predictions: predict.wcup2026.com`;
 
   document.getElementById('summary-output').style.display='block';
   document.getElementById('summary-text').textContent=summary;
