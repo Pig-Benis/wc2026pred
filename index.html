@@ -331,7 +331,6 @@ code.block{display:block;padding:.5rem .75rem;margin:.4rem 0;line-height:1.6}
     <div class="save-bar">
       <button class="btn-save" onclick="saveResults()">Save results</button>
       <span class="save-msg" id="save-results-msg">Saved!</span>
-      <button class="btn-save" style="background:#666;font-size:11px;padding:5px 10px" onclick="debugGroups()">Debug</button>
       <label class="feed-toggle" title="Toggle live score feed">
         <span>Live feed</span>
         <label class="toggle"><input type="checkbox" id="live-feed-toggle" checked onchange="toggleLiveFeed()"/><span class="toggle-slider"></span></label>
@@ -493,7 +492,7 @@ async function fetchLiveFeed(){
     if(count > 0) await pushLiveScoresToFirebase(newLive);
     // Re-render active tab
     const active = document.querySelector('.tab-content.active');
-    if(active?.id==='tab-results') renderResults();
+    if(active?.id==='tab-results') renderResults(); // renderResults is async and fetches fresh state
     if(active?.id==='tab-standings') renderStandings();
     if(active?.id==='tab-leaderboard') renderLeaderboard();
     if(active?.id==='tab-predictions' && currentUser) renderPredictions();
@@ -564,7 +563,7 @@ function subscribeToLiveUpdates(){
     if(active?.id==='tab-leaderboard') renderLeaderboard();
     if(active?.id==='tab-standings') renderStandings();
     if(active?.id==='tab-predictions' && currentUser) renderPredictions();
-    if(active?.id==='tab-results') renderResults();
+    if(active?.id==='tab-results') renderResults(); // renderResults is async and fetches fresh state
     if(active?.id==='tab-topscorer') renderTopScorer();
   });
 }
@@ -1185,7 +1184,9 @@ function miniPredRow(m, home, away, pred, pts){
 
 // ── RENDER RESULTS ────────────────────────────────────────────────────────────
 let resultBuffer = {};
-function renderResults(){
+async function renderResults(){
+  // Always fetch fresh state so knockout slots reflect all saved results
+  if(db) await fetchState();
   const q=getQualifiers(), slots=resolveSlots(q); let html='';
   Object.keys(GROUP_TEAMS).forEach(g=>{
     html += `<div class="section-label">Group ${g}</div>`;
@@ -1303,23 +1304,6 @@ function renderTopScorer(){
   }
   document.getElementById('topscorer-content').innerHTML = html;
 }
-
-function debugGroups(){
-  const lines = [];
-  Object.keys(GROUP_TEAMS).forEach(g => {
-    const matches = GROUP_MATCHES.filter(m => m.group === g);
-    const complete = isGroupComplete(g);
-    const results = matches.map(m => {
-      const r = getEffectiveResult(m.id);
-      return r ? `${m.id}:✓` : `${m.id}:✗`;
-    });
-    lines.push(`Group ${g} (${complete?'COMPLETE':'incomplete'}): ${results.join(', ')}`);
-  });
-  lines.push('');
-  lines.push('sharedState.results keys: ' + Object.keys(sharedState.results).filter(k=>k.startsWith('g_')).length + ' group results');
-  alert(lines.join('\n'));
-}
-
 
 function flash(id){ const el=document.getElementById(id); el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2000); }
 
