@@ -523,11 +523,10 @@ function toggleLiveFeed(){
 }
 
 // Effective result: manual result takes precedence over live feed
-// source='predicted' means it's copied from predictions for bracket simulation only — not a real result
+// source='predicted' = copied from predictions for bracket only, not a real result
 function getEffectiveResult(id, forScoring=false){
   const manual = sharedState.results[id];
   if(manual && manual.h !== '' && manual.a !== ''){
-    // For scoring, skip predicted results (they're not real)
     if(forScoring && manual.source === 'predicted') return null;
     return { h: parseInt(manual.h), a: parseInt(manual.a), source: manual.source || 'manual' };
   }
@@ -924,10 +923,7 @@ function resolveSlots(q){
   const s = {...q};
   // Map best 8 third-place teams (T1-T8) to the R32 third-place slots in order
   const r32ThirdSlots = KNOCKOUT_MATCHES.filter(m=>m.phase==='r32' && /^3[A-L]/.test(m.away));
-  r32ThirdSlots.forEach((m, i) => {
-    const tKey = `T${i+1}`;
-    if(q[tKey]) s[m.away] = q[tKey];
-  });
+  r32ThirdSlots.forEach((m, i) => { if(q[`T${i+1}`]) s[m.away] = q[`T${i+1}`]; });
   KNOCKOUT_MATCHES.forEach(m=>{
     s[`home_${m.id}`] = s[m.home]||m.home;
     s[`away_${m.id}`] = s[m.away]||m.away;
@@ -946,7 +942,7 @@ function getMatchTeams(id, slots){
 }
 
 function calcPts(u, id, slots){
-  const r = getEffectiveResult(id, true); // forScoring=true: ignore predicted results
+  const r = getEffectiveResult(id, true);
   const p = sharedState.users[u]?.preds?.[id];
   if(!r||!p||p.h===''||p.a==='') return null;
   const ph=parseInt(p.h), pa=parseInt(p.a);
@@ -1080,26 +1076,17 @@ async function saveAll(){
   try{
     await db.ref().update(updates);
     predBuffer = {};
-    // Fetch fresh full state so we have ALL predictions (not just what changed)
     await fetchState();
-    // If all 72 group matches are predicted, auto-copy to /results/ for bracket simulation
     const allPreds = sharedState.users[currentUser]?.preds || {};
-    const allGroupsFilled = GROUP_MATCHES.every(m => {
-      const p = allPreds[m.id];
-      return p && p.h !== '' && p.a !== '';
-    });
+    const allGroupsFilled = GROUP_MATCHES.every(m => { const p=allPreds[m.id]; return p && p.h!=='' && p.a!==''; });
     if(allGroupsFilled){
       const resultUpdates = {};
       GROUP_MATCHES.forEach(m => {
-        const existing = sharedState.results[m.id];
-        if(!existing || existing.source === 'predicted' || existing.h === '') {
-          resultUpdates[`/results/${m.id}`] = {h: allPreds[m.id].h, a: allPreds[m.id].a, source: 'predicted'};
-        }
+        const ex = sharedState.results[m.id];
+        if(!ex || ex.source==='predicted' || ex.h==='')
+          resultUpdates[`/results/${m.id}`] = {h:allPreds[m.id].h, a:allPreds[m.id].a, source:'predicted'};
       });
-      if(Object.keys(resultUpdates).length > 0){
-        await db.ref().update(resultUpdates);
-        await fetchState();
-      }
+      if(Object.keys(resultUpdates).length > 0){ await db.ref().update(resultUpdates); await fetchState(); }
     }
     setSyncUI('ok','Saved'); flash('save-msg'); renderPredictions();
   }catch(e){ setSyncUI('err','Save failed'); }
@@ -1297,15 +1284,10 @@ async function saveTopScorer(player){
 
 async function saveAdminTopScorer(){
   const picks = [];
-  for(let i=1;i<=5;i++){
-    const el = document.getElementById('admin-ts-'+i);
-    if(el && el.value) picks.push(el.value);
-  }
+  for(let i=1;i<=5;i++){ const el=document.getElementById('admin-ts-'+i); if(el&&el.value) picks.push(el.value); }
   await db.ref('/adminTopScorer').set(picks.length ? picks : null);
   sharedState.adminTopScorer = picks;
-  setSyncUI('ok','Saved');
-  renderTopScorer();
-  renderLeaderboard();
+  setSyncUI('ok','Saved'); renderTopScorer(); renderLeaderboard();
 }
 
 function renderTopScorer(){
@@ -1322,37 +1304,27 @@ function renderTopScorer(){
   if(!locked){
     html += `<select id="topscorer-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;background:#fff;margin-bottom:.75rem"><option value="">— Select a player —</option>${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===myPick?'selected':''}>${p}</option>`).join('')}</select><button class="btn-save" onclick="saveTopScorer(document.getElementById('topscorer-select').value)">Save pick</button>`;
   } else {
-    const correct = adminPicks.length > 0 && myPick && adminPicks.includes(myPick);
+    const correct = adminPicks.length>0 && myPick && adminPicks.includes(myPick);
     const pts = correct ? TOP_SCORER_PTS : 0;
     html += `<div style="font-size:16px;font-weight:600;margin-bottom:.4rem">${myPick||'<span style="color:var(--muted);font-weight:400">No pick submitted</span>'}</div>`;
-    if(adminPicks.length > 0){
+    if(adminPicks.length>0){
       html += `<div style="font-size:13px;color:var(--muted)">Top scorer${adminPicks.length>1?'s':''}: <strong style="color:var(--text)">${adminPicks.join(', ')}</strong></div>`;
       if(myPick) html += `<div style="margin-top:.5rem">${correct?`<span class="result-pill rp-exact">+${pts} pts — correct!</span>`:`<span class="result-pill rp-wrong">0 pts</span>`}</div>`;
-    } else {
-      html += `<div style="font-size:12px;color:var(--muted);margin-top:.4rem">Result will appear here once the actual top scorer is entered.</div>`;
-    }
+    } else html += `<div style="font-size:12px;color:var(--muted);margin-top:.4rem">Result will appear here once the actual top scorer is entered.</div>`;
   }
   html += `</div>`;
   if(isAdmin){
-    html += `<div style="background:var(--warn-bg);border:1px solid #e8d070;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem">
-      <div style="font-size:12px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">Admin — Enter top scorer(s)</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">Up to 5 players if the Golden Boot is shared. Anyone who picked any of them gets ${TOP_SCORER_PTS} pts.</div>`;
+    html += `<div style="background:var(--warn-bg);border:1px solid #e8d070;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem"><div style="font-size:12px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">Admin — Enter top scorer(s)</div><div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">Up to 5 players if the Golden Boot is shared. Anyone who picked any of them gets ${TOP_SCORER_PTS} pts.</div>`;
     for(let i=1;i<=5;i++){
-      const cur = adminPicks[i-1]||'';
-      html += `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
-        <span style="font-size:12px;color:var(--muted);min-width:14px">${i}.</span>
-        <select id="admin-ts-${i}" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Barlow',sans-serif;background:#fff">
-          <option value="">— None —</option>
-          ${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('')}
-        </select>
-      </div>`;
+      const cur=adminPicks[i-1]||'';
+      html+=`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem"><span style="font-size:12px;color:var(--muted);min-width:14px">${i}.</span><select id="admin-ts-${i}" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Barlow',sans-serif;background:#fff"><option value="">— None —</option>${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('')}</select></div>`;
     }
     html += `<button class="btn-save" style="margin-top:.5rem" onclick="saveAdminTopScorer()">Save</button>`;
-    if(adminPicks.length>0) html += `<div style="font-size:12px;color:var(--success);margin-top:.5rem">✓ Currently: <strong>${adminPicks.join(', ')}</strong></div>`;
+    if(adminPicks.length>0) html+=`<div style="font-size:12px;color:var(--success);margin-top:.5rem">✓ Currently: <strong>${adminPicks.join(', ')}</strong></div>`;
     html += `</div>`;
   }
-  if(users.length > 0 && (locked || isAdmin)){
-    html += `<div style="background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600"><span>Player</span><span>Their pick</span><span>Pts</span></div>`;
+  if(users.length>0 && (locked||isAdmin)){
+    html+=`<div style="background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600"><span>Player</span><span>Their pick</span><span>Pts</span></div>`;
     users.forEach(u=>{
       const pick=sharedState.users[u]?.topScorer||'';
       const correct=adminPicks.length>0&&pick&&adminPicks.includes(pick);
@@ -1360,7 +1332,7 @@ function renderTopScorer(){
       const isYou=u===currentUser;
       html+=`<div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;border-top:1px solid #f0f0f0;font-size:13px;${isYou?'background:var(--warn-bg)':''}"><span style="font-weight:${isYou?600:400}">${u}${isYou?' (you)':''}</span><span style="color:${pick?'var(--text)':'var(--muted)'}">${pick||'No pick'}</span><span style="font-weight:600;color:${correct?'var(--success)':'var(--muted)'}">${pts}</span></div>`;
     });
-    html += `</div>`;
+    html+=`</div>`;
   }
   document.getElementById('topscorer-content').innerHTML = html;
 }
