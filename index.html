@@ -547,7 +547,7 @@ async function fetchState(){
     const data = snap.val() || {};
     sharedState.users = data.users || {};
     sharedState.results = data.results || {};
-    sharedState.adminTopScorer = Array.isArray(data.adminTopScorer) ? data.adminTopScorer : (data.adminTopScorer ? [data.adminTopScorer] : []);
+    sharedState.adminTopScorer = data.adminTopScorer || '';
     setSyncUI('ok','Live'); return true;
   }catch(e){ setSyncUI('err','Sync failed'); return false; }
 }
@@ -557,7 +557,7 @@ function subscribeToLiveUpdates(){
     const data = snap.val() || {};
     sharedState.users = data.users || {};
     sharedState.results = data.results || {};
-    sharedState.adminTopScorer = Array.isArray(data.adminTopScorer) ? data.adminTopScorer : (data.adminTopScorer ? [data.adminTopScorer] : []);
+    sharedState.adminTopScorer = data.adminTopScorer || '';
     setSyncUI('ok','Live');
     const active = document.querySelector('.tab-content.active');
     if(active?.id==='tab-leaderboard') renderLeaderboard();
@@ -917,6 +917,12 @@ function getQualifiers(){
 
 function resolveSlots(q){
   const s = {...q};
+  // Map best 8 third-place teams (T1-T8) to the R32 third-place slots in order
+  const r32ThirdSlots = KNOCKOUT_MATCHES.filter(m=>m.phase==='r32' && /^3[A-L]/.test(m.away));
+  r32ThirdSlots.forEach((m, i) => {
+    const tKey = `T${i+1}`;
+    if(q[tKey]) s[m.away] = q[tKey]; // map e.g. "3C/D/F/G/H" -> actual team name
+  });
   KNOCKOUT_MATCHES.forEach(m=>{
     // Resolve home/away labels through the bracket
     s[`home_${m.id}`] = s[m.home]||m.home;
@@ -1069,30 +1075,8 @@ async function saveAll(){
   setSyncUI('spin','Saving...');
   try{
     await db.ref().update(updates);
-    predBuffer = {};
-    // Fetch fresh full state so we have ALL predictions (not just what changed)
-    await fetchState();
-    // If all 72 group matches are predicted, auto-copy to /results/ for bracket simulation
-    const allPreds = sharedState.users[currentUser]?.preds || {};
-    const allGroupsFilled = GROUP_MATCHES.every(m => {
-      const p = allPreds[m.id];
-      return p && p.h !== '' && p.a !== '';
-    });
-    if(allGroupsFilled){
-      const resultUpdates = {};
-      GROUP_MATCHES.forEach(m => {
-        const existing = sharedState.results[m.id];
-        // Only overwrite if not already a real manual result
-        if(!existing || existing.source === 'predicted' || existing.h === '') {
-          resultUpdates[`/results/${m.id}`] = {h: allPreds[m.id].h, a: allPreds[m.id].a, source: 'predicted'};
-        }
-      });
-      if(Object.keys(resultUpdates).length > 0){
-        await db.ref().update(resultUpdates);
-        await fetchState();
-      }
-    }
-    setSyncUI('ok','Saved'); flash('save-msg'); renderPredictions();
+    Object.entries(predBuffer).forEach(([id,v])=>{ if(!sharedState.users[currentUser].preds) sharedState.users[currentUser].preds={}; sharedState.users[currentUser].preds[id]=v; });
+    predBuffer = {}; setSyncUI('ok','Saved'); flash('save-msg'); renderPredictions();
   }catch(e){ setSyncUI('err','Save failed'); }
 }
 
@@ -1124,8 +1108,8 @@ function renderLeaderboard(){
   if(!users.length){ document.getElementById('leaderboard-content').innerHTML='<p style="color:var(--muted);padding:1rem 0;font-size:14px">No players yet.</p>'; return; }
   const locked = isPredictionLocked();
   const q = getQualifiers(), slots = resolveSlots(q);
-  const adminPick = Array.isArray(sharedState.adminTopScorer) ? sharedState.adminTopScorer : (sharedState.adminTopScorer ? [sharedState.adminTopScorer] : []);
-  const scores = users.map(u=>{ let pts=0,exact=0,correct=0,teams=0; ALL_MATCHES.forEach(m=>{const p=calcPts(u,m.id,slots);if(p!==null){pts+=p;if(p===5)exact++;else if(p===2)correct++;else if(p===1)teams++;}}); const tsPick=sharedState.users[u]?.topScorer||''; if(adminPick.length>0&&tsPick&&adminPick.includes(tsPick))pts+=TOP_SCORER_PTS; return{u,pts,exact,correct,teams,missing:getMissingCount(u)}; }).sort((a,b)=>b.pts-a.pts||b.exact-a.exact);
+  const adminPick = sharedState.adminTopScorer || '';
+  const scores = users.map(u=>{ let pts=0,exact=0,correct=0,teams=0; ALL_MATCHES.forEach(m=>{const p=calcPts(u,m.id,slots);if(p!==null){pts+=p;if(p===5)exact++;else if(p===2)correct++;else if(p===1)teams++;}}); const tsPick=sharedState.users[u]?.topScorer||''; if(adminPick&&tsPick===adminPick)pts+=TOP_SCORER_PTS; return{u,pts,exact,correct,teams,missing:getMissingCount(u)}; }).sort((a,b)=>b.pts-a.pts||b.exact-a.exact);
   const medals=['🥇','🥈','🥉'];
   let html=`<div class="lb-table"><div class="lb-hdr"><span>Rank</span><span>Player</span><span>Points</span><span>Exact</span><span>Result</span></div>`;
   scores.forEach((s,i)=>{
@@ -1256,9 +1240,7 @@ async function saveResults(){
   try{
     await db.ref().update(updates);
     Object.entries(resultBuffer).forEach(([id,v])=>{ sharedState.results[id]={...v,source:'manual'}; });
-    resultBuffer={}; setSyncUI('ok','Saved'); flash('save-results-msg');
-    await fetchState();
-    renderResults(); renderStandings(); buildTicker();
+    resultBuffer={}; setSyncUI('ok','Saved'); flash('save-results-msg'); renderResults(); buildTicker();
   }catch(e){ setSyncUI('err','Save failed'); }
 }
 
@@ -1286,14 +1268,10 @@ async function saveTopScorer(player){
   renderTopScorer();
 }
 
-async function saveAdminTopScorer(){
-  const picks = [];
-  for(let i=1;i<=5;i++){
-    const el = document.getElementById('admin-ts-'+i);
-    if(el && el.value) picks.push(el.value);
-  }
-  await db.ref('/adminTopScorer').set(picks.length ? picks : null);
-  sharedState.adminTopScorer = picks;
+async function saveAdminTopScorer(player){
+  if(!player) return;
+  await db.ref('/adminTopScorer').set(player);
+  sharedState.adminTopScorer = player;
   setSyncUI('ok','Saved');
   renderTopScorer();
   renderLeaderboard();
@@ -1303,7 +1281,7 @@ function renderTopScorer(){
   if(!currentUser){ document.getElementById('topscorer-content').innerHTML='<p style="color:var(--muted);padding:1rem 0;font-size:14px">Please log in to see top scorer predictions.</p>'; return; }
   const locked = isPredictionLocked();
   const myPick = sharedState.users[currentUser]?.topScorer || '';
-  const adminPicks = Array.isArray(sharedState.adminTopScorer) ? sharedState.adminTopScorer : (sharedState.adminTopScorer ? [sharedState.adminTopScorer] : []);
+  const adminPick = sharedState.adminTopScorer || '';
   const isAdmin = currentUser.toLowerCase() === ADMIN_USER;
   const users = Object.keys(sharedState.users);
   let html = '';
@@ -1313,44 +1291,19 @@ function renderTopScorer(){
   if(!locked){
     html += `<select id="topscorer-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;background:#fff;margin-bottom:.75rem"><option value="">— Select a player —</option>${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===myPick?'selected':''}>${p}</option>`).join('')}</select><button class="btn-save" onclick="saveTopScorer(document.getElementById('topscorer-select').value)">Save pick</button>`;
   } else {
-    const correct = adminPicks.length > 0 && myPick && adminPicks.includes(myPick);
+    const correct = adminPick && myPick === adminPick;
     const pts = correct ? TOP_SCORER_PTS : 0;
     html += `<div style="font-size:16px;font-weight:600;margin-bottom:.4rem">${myPick||'<span style="color:var(--muted);font-weight:400">No pick submitted</span>'}</div>`;
-    if(adminPicks.length > 0){
-      html += `<div style="font-size:13px;color:var(--muted)">Top scorer${adminPicks.length>1?'s':''}: <strong style="color:var(--text)">${adminPicks.join(', ')}</strong></div>`;
-      if(myPick) html += `<div style="margin-top:.5rem">${correct?`<span class="result-pill rp-exact">+${pts} pts — correct!</span>`:`<span class="result-pill rp-wrong">0 pts</span>`}</div>`;
-    } else {
-      html += `<div style="font-size:12px;color:var(--muted);margin-top:.4rem">Result will appear here once the actual top scorer is entered.</div>`;
-    }
+    if(adminPick){ html += `<div style="font-size:13px;color:var(--muted)">Actual top scorer: <strong style="color:var(--text)">${adminPick}</strong></div>`; if(myPick) html += `<div style="margin-top:.5rem">${correct?`<span class="result-pill rp-exact">+${pts} pts — correct!</span>`:`<span class="result-pill rp-wrong">0 pts</span>`}</div>`; }
+    else html += `<div style="font-size:12px;color:var(--muted);margin-top:.4rem">Result will appear here once the actual top scorer is entered.</div>`;
   }
   html += `</div>`;
   if(isAdmin){
-    html += `<div style="background:var(--warn-bg);border:1px solid #e8d070;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem">
-      <div style="font-size:12px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">Admin — Enter top scorer(s)</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">Up to 5 players if the Golden Boot is shared. Anyone who picked any of them gets ${TOP_SCORER_PTS} pts.</div>`;
-    for(let i=1;i<=5;i++){
-      const cur = adminPicks[i-1]||'';
-      html += `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
-        <span style="font-size:12px;color:var(--muted);min-width:14px">${i}.</span>
-        <select id="admin-ts-${i}" style="flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'Barlow',sans-serif;background:#fff">
-          <option value="">— None —</option>
-          ${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('')}
-        </select>
-      </div>`;
-    }
-    html += `<button class="btn-save" style="margin-top:.5rem" onclick="saveAdminTopScorer()">Save</button>`;
-    if(adminPicks.length>0) html += `<div style="font-size:12px;color:var(--success);margin-top:.5rem">✓ Currently: <strong>${adminPicks.join(', ')}</strong></div>`;
-    html += `</div>`;
+    html += `<div style="background:var(--warn-bg);border:1px solid #e8d070;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem"><div style="font-size:12px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Admin — Enter actual top scorer</div><select id="admin-topscorer-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;background:#fff;margin-bottom:.75rem"><option value="">— Select player —</option>${TOP_SCORER_PLAYERS.map(p=>`<option value="${p}" ${p===adminPick?'selected':''}>${p}</option>`).join('')}</select><button class="btn-save" onclick="saveAdminTopScorer(document.getElementById('admin-topscorer-select').value)">Save result</button>${adminPick?`<div style="font-size:12px;color:var(--success);margin-top:.5rem">✓ Currently set to: <strong>${adminPick}</strong></div>`:''}</div>`;
   }
   if(users.length > 0 && (locked || isAdmin)){
     html += `<div style="background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)"><div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;background:var(--green-dark);color:#fff;font-size:12px;font-weight:600"><span>Player</span><span>Their pick</span><span>Pts</span></div>`;
-    users.forEach(u=>{
-      const pick=sharedState.users[u]?.topScorer||'';
-      const correct=adminPicks.length>0&&pick&&adminPicks.includes(pick);
-      const pts=adminPicks.length>0?(correct?TOP_SCORER_PTS:0):'—';
-      const isYou=u===currentUser;
-      html+=`<div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;border-top:1px solid #f0f0f0;font-size:13px;${isYou?'background:var(--warn-bg)':''}"><span style="font-weight:${isYou?600:400}">${u}${isYou?' (you)':''}</span><span style="color:${pick?'var(--text)':'var(--muted)'}">${pick||'No pick'}</span><span style="font-weight:600;color:${correct?'var(--success)':'var(--muted)'}">${pts}</span></div>`;
-    });
+    users.forEach(u=>{ const pick=sharedState.users[u]?.topScorer||''; const correct=adminPick&&pick===adminPick; const pts=adminPick?(correct?TOP_SCORER_PTS:0):'—'; const isYou=u===currentUser; html+=`<div style="display:grid;grid-template-columns:1fr 1fr auto;padding:.5rem 1rem;border-top:1px solid #f0f0f0;font-size:13px;${isYou?'background:var(--warn-bg)':''}"><span style="font-weight:${isYou?600:400}">${u}${isYou?' (you)':''}</span><span style="color:${pick?'var(--text)':'var(--muted)'}">${pick||'No pick'}</span><span style="font-weight:600;color:${correct?'var(--success)':'var(--muted)'}">${pts}</span></div>`; });
     html += `</div>`;
   }
   document.getElementById('topscorer-content').innerHTML = html;
