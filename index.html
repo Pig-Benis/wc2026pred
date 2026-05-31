@@ -492,7 +492,7 @@ async function fetchLiveFeed(){
     if(count > 0) await pushLiveScoresToFirebase(newLive);
     // Re-render active tab
     const active = document.querySelector('.tab-content.active');
-    if(active?.id==='tab-results') renderResults(); // renderResults is async and fetches fresh state
+    if(active?.id==='tab-results') renderResults();
     if(active?.id==='tab-standings') renderStandings();
     if(active?.id==='tab-leaderboard') renderLeaderboard();
     if(active?.id==='tab-predictions' && currentUser) renderPredictions();
@@ -563,7 +563,7 @@ function subscribeToLiveUpdates(){
     if(active?.id==='tab-leaderboard') renderLeaderboard();
     if(active?.id==='tab-standings') renderStandings();
     if(active?.id==='tab-predictions' && currentUser) renderPredictions();
-    if(active?.id==='tab-results') renderResults(); // renderResults is async and fetches fresh state
+    if(active?.id==='tab-results') renderResults();
     if(active?.id==='tab-topscorer') renderTopScorer();
   });
 }
@@ -1070,7 +1070,30 @@ async function saveAll(){
   try{
     await db.ref().update(updates);
     Object.entries(predBuffer).forEach(([id,v])=>{ if(!sharedState.users[currentUser].preds) sharedState.users[currentUser].preds={}; sharedState.users[currentUser].preds[id]=v; });
-    predBuffer = {}; setSyncUI('ok','Saved'); flash('save-msg'); renderPredictions();
+    predBuffer = {};
+
+    // If all group matches are predicted, auto-copy them to /results/ for bracket simulation
+    const allPreds = sharedState.users[currentUser]?.preds || {};
+    const allGroupsFilled = GROUP_MATCHES.every(m => {
+      const p = allPreds[m.id];
+      return p && p.h !== '' && p.a !== '';
+    });
+    if(allGroupsFilled){
+      const resultUpdates = {};
+      GROUP_MATCHES.forEach(m => {
+        // Only write if no real result already saved manually
+        const existing = sharedState.results[m.id];
+        if(!existing || existing.source !== 'manual' || existing.h === '') {
+          resultUpdates[`/results/${m.id}`] = {h: allPreds[m.id].h, a: allPreds[m.id].a, source: 'predicted'};
+        }
+      });
+      if(Object.keys(resultUpdates).length > 0){
+        await db.ref().update(resultUpdates);
+        await fetchState();
+      }
+    }
+
+    setSyncUI('ok','Saved'); flash('save-msg'); renderPredictions();
   }catch(e){ setSyncUI('err','Save failed'); }
 }
 
@@ -1184,9 +1207,7 @@ function miniPredRow(m, home, away, pred, pts){
 
 // ── RENDER RESULTS ────────────────────────────────────────────────────────────
 let resultBuffer = {};
-async function renderResults(){
-  // Always fetch fresh state so knockout slots reflect all saved results
-  if(db) await fetchState();
+function renderResults(){
   const q=getQualifiers(), slots=resolveSlots(q); let html='';
   Object.keys(GROUP_TEAMS).forEach(g=>{
     html += `<div class="section-label">Group ${g}</div>`;
