@@ -523,9 +523,14 @@ function toggleLiveFeed(){
 }
 
 // Effective result: manual result takes precedence over live feed
-function getEffectiveResult(id){
+// source='predicted' means it's copied from predictions for bracket simulation only — not a real result
+function getEffectiveResult(id, forScoring=false){
   const manual = sharedState.results[id];
-  if(manual && manual.h !== '' && manual.a !== '') return { h: parseInt(manual.h), a: parseInt(manual.a), source: manual.source || 'manual' };
+  if(manual && manual.h !== '' && manual.a !== ''){
+    // For scoring, skip predicted results (they're not real)
+    if(forScoring && manual.source === 'predicted') return null;
+    return { h: parseInt(manual.h), a: parseInt(manual.a), source: manual.source || 'manual' };
+  }
   const live = liveScores[id];
   if(live && liveEnabled) return { h: parseInt(live.h), a: parseInt(live.a), source: live.status === 'live' ? 'live' : 'auto' };
   return null;
@@ -921,10 +926,9 @@ function resolveSlots(q){
   const r32ThirdSlots = KNOCKOUT_MATCHES.filter(m=>m.phase==='r32' && /^3[A-L]/.test(m.away));
   r32ThirdSlots.forEach((m, i) => {
     const tKey = `T${i+1}`;
-    if(q[tKey]) s[m.away] = q[tKey]; // map e.g. "3C/D/F/G/H" -> actual team name
+    if(q[tKey]) s[m.away] = q[tKey];
   });
   KNOCKOUT_MATCHES.forEach(m=>{
-    // Resolve home/away labels through the bracket
     s[`home_${m.id}`] = s[m.home]||m.home;
     s[`away_${m.id}`] = s[m.away]||m.away;
     const r = getEffectiveResult(m.id);
@@ -942,7 +946,7 @@ function getMatchTeams(id, slots){
 }
 
 function calcPts(u, id, slots){
-  const r = getEffectiveResult(id);
+  const r = getEffectiveResult(id, true); // forScoring=true: ignore predicted results
   const p = sharedState.users[u]?.preds?.[id];
   if(!r||!p||p.h===''||p.a==='') return null;
   const ph=parseInt(p.h), pa=parseInt(p.a);
